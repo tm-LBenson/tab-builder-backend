@@ -11,10 +11,6 @@ import (
 
 type SongHandler struct{ Store *db.Store }
 
-func (h SongHandler) Register(r chi.Router) {
-	r.Get("/", h.list)
-}
-
 func (h SongHandler) list(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UID(r)
 	rows, err := h.Store.ListSongs(r.Context(), uid)
@@ -33,7 +29,7 @@ func (h SongHandler) Register(r chi.Router) {
 		sr.Put("/", h.update)
 		sr.Delete("/", h.delete)
 		sr.Post("/clone", h.clone)
-		sr.Post("/share", h.share) // share logic later
+		// sr.Post("/share", h.share)
 	})
 }
 

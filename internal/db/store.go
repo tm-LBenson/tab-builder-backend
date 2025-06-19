@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,7 +27,7 @@ type SongIn struct {
 
 func scanSong(row pgx.Row) (Song, error) {
 	var s Song
-	err := row.Scan(&s.ID, &s.Title, &s.IsPublic, &s.Payload, &s.CreatedAt, &s.UpdatedAt)
+	err := row.Scan(&s.ID, &s.OwnerUID, &s.Title, &s.IsPublic, &s.Payload, &s.CreatedAt, &s.UpdatedAt)
 	return s, err
 }
 
