@@ -6,9 +6,10 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/tm-LBenson/tab-builder-backend/internal/auth"
 	"github.com/tm-LBenson/tab-builder-backend/internal/db"
 	"github.com/tm-LBenson/tab-builder-backend/internal/handlers"
+	"github.com/tm-LBenson/tab-builder-backend/internal/middleware"
+
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 	defer store.Close()
 
 	r := chi.NewRouter()
-	r.Use(auth.FirebaseAuth)
+	r.Use(middleware.FirebaseAuth)
 
 	song := handlers.SongHandler{Store: store}
 	r.Route("/songs", song.Register)
@@ -30,3 +31,4 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
