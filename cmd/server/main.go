@@ -4,12 +4,12 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/tm-LBenson/tab-builder-backend/internal/db"
 	"github.com/tm-LBenson/tab-builder-backend/internal/handlers"
 	"github.com/tm-LBenson/tab-builder-backend/internal/middleware"
-
 )
 
 func main() {
@@ -20,15 +20,19 @@ func main() {
 	}
 	defer store.Close()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8888"
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.FirebaseAuth)
 
 	song := handlers.SongHandler{Store: store}
 	r.Route("/songs", song.Register)
 
-	log.Println("listening on :8080")
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	log.Printf("listening on :%s\n", port)
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatal(err)
 	}
 }
-

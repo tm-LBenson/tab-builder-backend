@@ -1,4 +1,3 @@
-// internal/handlers/song.go
 package handlers
 
 import (
