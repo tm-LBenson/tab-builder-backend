@@ -5,7 +5,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/tabs?sslmode=disable
       PORT: 8888
     volumes:
-      - "./secrets:/secrets:ro"
+      - ./secrets:/secrets:ro
     ports:
       - "8888:8888"
     depends_on:
@@ -19,6 +19,7 @@ services:
       POSTGRES_DB: tabs
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
     ports:
       - "55432:5432"
     healthcheck:

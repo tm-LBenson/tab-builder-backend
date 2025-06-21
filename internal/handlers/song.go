@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -35,6 +36,8 @@ func (h SongHandler) Register(r chi.Router) {
 
 func (h SongHandler) create(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UID(r)
+	log.Println("creating song for", uid)
+
 	var in db.SongIn
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		http.Error(w, err.Error(), 400)
@@ -53,11 +56,11 @@ func (h SongHandler) get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	song, err := h.Store.GetSong(r.Context(), id)
 	if err != nil {
-		http.Error(w, err.Error(), 404)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	if song.OwnerUID != uid && !song.IsPublic {
-		http.Error(w, "forbidden", 403)
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 	json.NewEncoder(w).Encode(song)
@@ -72,7 +75,7 @@ func (h SongHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if orig.OwnerUID != uid {
-		http.Error(w, "forbidden", 403)
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 	var in db.SongIn
@@ -97,7 +100,7 @@ func (h SongHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.OwnerUID != uid {
-		http.Error(w, "forbidden", 403)
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 	if err := h.Store.DeleteSong(r.Context(), id); err != nil {

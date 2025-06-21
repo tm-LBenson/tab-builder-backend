@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"log"
 	"os"
 	"time"
 
@@ -23,6 +24,16 @@ type SongIn struct {
 	Title    string         `json:"title"`
 	IsPublic bool           `json:"isPublic"`
 	Payload  map[string]any `json:"payload"`
+}
+
+func (s *Store) EnsureUser(ctx context.Context, uid, display string) error {
+	log.Println("EnsureUser:", uid, display)
+	_, err := s.Pool.Exec(ctx, `
+			INSERT INTO users (uid, display_name)
+			VALUES ($1,$2)
+			ON CONFLICT (uid) DO NOTHING`,
+		uid, display)
+	return err
 }
 
 func scanSong(row pgx.Row) (Song, error) {
@@ -73,10 +84,10 @@ func (s *Store) ListSongs(ctx context.Context, uid string) ([]map[string]any, er
 	return out, rows.Err()
 }
 func (s *Store) CreateSong(ctx context.Context, uid string, in SongIn) (Song, error) {
-	row := s.Pool.QueryRow(ctx,
-		`INSERT INTO songs (owner_uid,title,is_public,payload)
-             VALUES ($1,$2,$3,$4)
-         RETURNING id,title,is_public,payload,created_at,updated_at`,
+	row := s.Pool.QueryRow(ctx, `
+	    INSERT INTO songs (owner_uid,title,is_public,payload)
+	    VALUES ($1,$2,$3,$4)
+	    RETURNING id,owner_uid,title,is_public,payload,created_at,updated_at`,
 		uid, in.Title, in.IsPublic, in.Payload)
 	return scanSong(row)
 }
@@ -90,11 +101,11 @@ func (s *Store) GetSong(ctx context.Context, id string) (Song, error) {
 }
 
 func (s *Store) UpdateSong(ctx context.Context, id string, in SongIn) (Song, error) {
-	row := s.Pool.QueryRow(ctx,
-		`UPDATE songs
-            SET title=$2, is_public=$3, payload=$4, updated_at=NOW()
-          WHERE id=$1
-          RETURNING id,title,is_public,payload,created_at,updated_at`,
+	row := s.Pool.QueryRow(ctx, `
+	    UPDATE songs
+	    SET title=$2, is_public=$3, payload=$4, updated_at=NOW()
+	    WHERE id=$1
+	    RETURNING id,owner_uid,title,is_public,payload,created_at,updated_at`,
 		id, in.Title, in.IsPublic, in.Payload)
 	return scanSong(row)
 }
@@ -105,10 +116,10 @@ func (s *Store) DeleteSong(ctx context.Context, id string) error {
 }
 
 func (s *Store) CloneSong(ctx context.Context, id, newUID string) (Song, error) {
-	row := s.Pool.QueryRow(ctx,
-		`INSERT INTO songs (owner_uid,title,is_public,payload)
-             SELECT $2,title,is_public,payload FROM songs WHERE id=$1
-         RETURNING id,title,is_public,payload,created_at,updated_at`,
+	row := s.Pool.QueryRow(ctx, `
+	    INSERT INTO songs (owner_uid,title,is_public,payload)
+	    SELECT $2,title,is_public,payload FROM songs WHERE id=$1
+	    RETURNING id,owner_uid,title,is_public,payload,created_at,updated_at`,
 		id, newUID)
 	return scanSong(row)
 }
