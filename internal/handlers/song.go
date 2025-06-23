@@ -12,6 +12,20 @@ import (
 
 type SongHandler struct{ Store *db.Store }
 
+func (h SongHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
+	limit := 10
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 50 {
+			limit = n
+		}
+	}
+	rows, err := h.Store.ListPublicSongs(r.Context(), limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(rows)
+}
 
 func (h SongHandler) listMine(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UID(r)
@@ -22,22 +36,6 @@ func (h SongHandler) listMine(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewEncoder(w).Encode(rows)
 }
-
-func (h SongHandler) listPublic(w http.ResponseWriter, r *http.Request) {
-	lim := 10
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 50 {
-			lim = n
-		}
-	}
-	rows, err := h.Store.ListPublicSongs(r.Context(), lim)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(rows)
-}
-
 
 func (h SongHandler) create(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UID(r)
@@ -56,8 +54,7 @@ func (h SongHandler) create(w http.ResponseWriter, r *http.Request) {
 
 func (h SongHandler) get(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UID(r)
-	id  := chi.URLParam(r, "id")
-
+	id := chi.URLParam(r, "id")
 	song, err := h.Store.GetSong(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -72,8 +69,7 @@ func (h SongHandler) get(w http.ResponseWriter, r *http.Request) {
 
 func (h SongHandler) update(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UID(r)
-	id  := chi.URLParam(r, "id")
-
+	id := chi.URLParam(r, "id")
 	orig, err := h.Store.GetSong(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -83,7 +79,6 @@ func (h SongHandler) update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-
 	var in db.SongIn
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -99,8 +94,7 @@ func (h SongHandler) update(w http.ResponseWriter, r *http.Request) {
 
 func (h SongHandler) delete(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UID(r)
-	id  := chi.URLParam(r, "id")
-
+	id := chi.URLParam(r, "id")
 	song, err := h.Store.GetSong(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -119,8 +113,7 @@ func (h SongHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 func (h SongHandler) clone(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UID(r)
-	id  := chi.URLParam(r, "id")
-
+	id := chi.URLParam(r, "id")
 	out, err := h.Store.CloneSong(r.Context(), id, uid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -129,15 +122,9 @@ func (h SongHandler) clone(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(out)
 }
 
-
-func (h SongHandler) Register(r chi.Router) {
-	// Public feed (no auth)
-	r.Get("/public", h.listPublic)
-
-	// Authenticated endpoints
+func (h SongHandler) RegisterProtected(r chi.Router) {
 	r.Get("/", h.listMine)
 	r.Post("/", h.create)
-
 	r.Route("/{id}", func(sr chi.Router) {
 		sr.Get("/", h.get)
 		sr.Put("/", h.update)
